@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Student Profile | Staff Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f1f5f9;
+  color: #1f2937;
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(120deg, #2563eb, #1e40af);
+  color: white;
+  padding: 22px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* CONTAINER */
+.container {
+  max-width: 1200px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+/* CARD */
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 28px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* TITLES */
+.profile-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+/* STUDENT STATS */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 18px;
+  position: relative;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #cbd5e1;
+}
+
+.stat-card.primary::before { background: #2563eb; }
+.stat-card.success::before { background: #22c55e; }
+.stat-card.warning::before { background: #f59e0b; }
+.stat-card.danger::before  { background: #ef4444; }
+.stat-card.info::before    { background: #0ea5e9; }
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.stat-sub {
+  font-size: 13px;
+  color: #475569;
+}
+
+/* TABLE */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+th, td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+}
+
+th {
+  background: #f8fafc;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: #475569;
+}
+
+.status {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.approved { background: #dcfce7; color: #166534; }
+.pending  { background: #fef3c7; color: #92400e; }
+.rejected { background: #fee2e2; color: #991b1b; }
+
+/* BACK */
+.back-btn {
+  margin-top: 22px;
+  padding: 10px 18px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">Student Profile (Staff View)</div>
+
+<div class="container">
+
+  <!-- STUDENT OVERVIEW -->
+  <div class="card">
+    <div class="profile-title">Student Overview</div>
+
+    <div class="profile-grid">
+
+      <div class="stat-card primary">
+        <div class="stat-label">Roll Number</div>
+        <div class="stat-value" id="roll">—</div>
+        <div class="stat-sub">Unique Student ID</div>
+      </div>
+
+      <div class="stat-card info">
+        <div class="stat-label">Name</div>
+        <div class="stat-value" id="name">—</div>
+        <div class="stat-sub">Student Name</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Department</div>
+        <div class="stat-value" id="department">—</div>
+        <div class="stat-sub">Academic Program</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Total Leaves</div>
+        <div class="stat-value" id="totalLeaves">0</div>
+      </div>
+
+      <div class="stat-card success">
+        <div class="stat-label">Approved</div>
+        <div class="stat-value" id="approvedCount">0</div>
+      </div>
+
+      <div class="stat-card warning">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value" id="pendingCount">0</div>
+      </div>
+
+      <div class="stat-card danger">
+        <div class="stat-label">Rejected</div>
+        <div class="stat-value" id="rejectedCount">0</div>
+      </div>
+
+      <div class="stat-card info">
+        <div class="stat-label">Leaves This Month</div>
+        <div class="stat-value" id="monthLeaves">0</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LEAVE HISTORY -->
+  <div class="card">
+    <div class="profile-title">Leave History</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>From</th>
+          <th>To</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Action By</th>
+          <th>Action Time</th>
+        </tr>
+      </thead>
+      <tbody id="leaveTable"></tbody>
+    </table>
+
+    <button class="back-btn" onclick="history.back()">← Back to Dashboard</button>
+  </div>
+
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+const role = localStorage.getItem("role");
+
+if (!token || !["staff","hod"].includes(role)) {
+  location.replace("login.html");
+}
+
+const params = new URLSearchParams(location.search);
+const roll = params.get("roll");
+const API = "http://localhost:3000";
+
+/* LOAD STUDENT BASIC INFO */
+async function loadStudent() {
+  const res = await fetch(`${API}/api/students/${roll}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    alert("Student not found");
+    return;
+  }
+
+  const student = await res.json();
+  document.getElementById("roll").innerText = student.roll_number;
+  document.getElementById("name").innerText = student.name;
+  document.getElementById("department").innerText = student.department;
+}
+
+/* LOAD LEAVE STATS + HISTORY */
+async function loadProfile() {
+  const res = await fetch(`${API}/api/staff/leave-requests`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const all = await res.json();
+  const leaves = all.filter(l => l.roll_number === roll);
+
+  let approved = 0, pending = 0, rejected = 0;
+  let thisMonth = 0;
+
+  const now = new Date();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+
+  const tbody = document.getElementById("leaveTable");
+  tbody.innerHTML = "";
+
+  leaves.forEach(l => {
+    const from = new Date(l.from_date);
+
+    if (from.getMonth() === month && from.getFullYear() === year) {
+      thisMonth++;
+    }
+
+    if (l.status.includes("APPROVED")) approved++;
+    else if (l.status.includes("REJECTED")) rejected++;
+    else pending++;
+
+    const cls =
+      l.status.includes("APPROVED") ? "approved" :
+      l.status.includes("REJECTED") ? "rejected" : "pending";
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${new Date(l.from_date).toLocaleDateString("en-GB")}</td>
+        <td>${new Date(l.to_date).toLocaleDateString("en-GB")}</td>
+        <td>${l.reason}</td>
+        <td><span class="status ${cls}">${l.status}</span></td>
+        <td>${l.action_by ? `${l.action_by} (${l.action_role})` : "—"}</td>
+        <td>${l.action_time ? new Date(l.action_time).toLocaleString("en-GB") : "—"}</td>
+      </tr>`;
+  });
+
+  document.getElementById("totalLeaves").innerText = leaves.length;
+  document.getElementById("approvedCount").innerText = approved;
+  document.getElementById("pendingCount").innerText = pending;
+  document.getElementById("rejectedCount").innerText = rejected;
+  document.getElementById("monthLeaves").innerText = thisMonth;
+}
+
+/* INIT */
+loadStudent();
+loadProfile();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+/>
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+
+  background:
+    linear-gradient(
+      rgba(10, 25, 47, 0.55),
+      rgba(10, 25, 47, 0.55)
+    ),
+    url("education bg img.png");
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ========================= */
+/* ✅ RGB EDGE-ONLY GLASS CARD */
+/* ========================= */
+.card {
+  position: relative;
+  width: 400px;
+  padding: 30px;
+  border-radius: 18px;
+
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+
+  z-index: 1;
+}
+
+/* 🌈 RGB BORDER — EDGES ONLY */
+.card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  padding:2px;
+  border-radius:18px;
+
+  background:linear-gradient(
+    120deg,
+    #22d3ee,
+    #4f46e5,
+    #22c55e,
+    #facc15,
+    #f97316,
+    #ec4899,
+    #6366f1
+  );
+
+  background-size:300% 300%;
+  animation:rgbEdge 6s linear infinite;
+
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite:exclude;
+
+  filter:drop-shadow(0 0 8px rgba(99,102,241,.6));
+  opacity:0;
+  transition:opacity .4s ease;
+  pointer-events:none;
+}
+
+.card:hover::before{
+  opacity:1;
+}
+
+
+@keyframes rgbEdge {
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+}
+
+.logo {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.logo img {
+  width: 80px;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #0f172a;
+}
+
+label {
+  font-size: 13px;
+  color: #1f2937;
+}
+
+input {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.15);
+  font-size: 14px;
+  margin-top: 6px;
+  background: rgba(255,255,255,0.85);
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #555;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: #4e73df;
+  border: none;
+  color: white;
+  font-size: 15px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #9aa7e8;
+}
+
+.error {
+  text-align: center;
+  font-size: 13px;
+  color: #e11d48;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <div class="logo">
+    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135755.png">
+  </div>
+
+  <h2>Login</h2>
+
+  <form id="loginForm">
+    <label>Login ID</label>
+    <input id="loginId" placeholder="Roll Number or Staff ID" required>
+
+    <label>Password</label>
+    <div class="input-group">
+      <input type="password" id="password" required>
+      <i class="fa-solid fa-eye eye" onclick="togglePassword()"></i>
+    </div>
+
+    <button id="loginBtn" type="submit">Login</button>
+  </form>
+
+  <div class="error" id="error"></div>
+</div>
+
+<script>
+function togglePassword() {
+  const pwd = document.getElementById("password");
+  pwd.type = pwd.type === "password" ? "text" : "password";
+}
+
+function parseJWT(token) {
+  try {
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch {
+    return null;
+  }
+}
+
+document.getElementById("loginForm").addEventListener("submit", login);
+
+async function login(event) {
+  event.preventDefault();
+
+  const loginId = document.getElementById("loginId").value.trim();
+  const password = document.getElementById("password").value;
+  const errorBox = document.getElementById("error");
+  const btn = document.getElementById("loginBtn");
+
+  errorBox.innerText = "";
+  btn.disabled = true;
+  btn.innerText = "Logging in...";
+
+  try {
+    const res = await fetch("http://localhost:3000/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ loginId, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorBox.innerText = data.message || "Login failed";
+      return;
+    }
+
+    localStorage.clear();
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("role", data.role);
+
+    const payload = parseJWT(data.token);
+
+    if (data.role === "student") {
+      localStorage.setItem("rollNumber", payload.rollNumber);
+      location.replace("student-dashboard.html");
+      return;
+    }
+
+    if (data.role === "staff" || data.role === "hod") {
+      localStorage.setItem("staffId", payload.staffId);
+      location.replace("staff-dashboard.html");
+      return;
+    }
+
+    if (data.role === "admin") {
+      localStorage.setItem("staffId", payload.staffId);
+      location.replace("admin.html");
+      return;
+    }
+
+    errorBox.innerText = "Unknown role";
+
+  } catch (err) {
+    console.error(err);
+    errorBox.innerText = "Server error. Try again.";
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Login";
+  }
+}
+</script>
+
+</body>
+</html>

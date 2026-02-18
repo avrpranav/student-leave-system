@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Staff Dashboard | Leave Management</title>
+
+<style>
+* { box-sizing: border-box; font-family: "Segoe UI", Arial, sans-serif; }
+body { margin: 0; background: #f2f5f9; color: #1f2937; }
+
+.header {
+  background: linear-gradient(120deg, #2563eb, #1e40af);
+  color: white;
+  padding: 26px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 { margin: 0; font-size: 24px; }
+
+.header-actions {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.user-badge { font-size: 13px; }
+
+/* 🔔 Notification */
+.notif { position: relative; cursor: pointer; font-size: 18px; }
+
+.notif-count {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: red;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  display: none;
+}
+
+.notif-panel {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 40px;
+  width: 360px;
+  background: white;
+  color: #111;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  z-index: 99;
+  overflow: hidden;
+}
+
+.notif-panel h4 {
+  margin: 0;
+  padding: 12px;
+  background: #f1f5f9;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notif-panel h4 button {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.notif-meta {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #64748b;
+  background: #fafafa;
+}
+
+.notif-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.notif-item.unread {
+  background: #eff6ff;
+  font-weight: 600;
+}
+
+.notif-item small {
+  display: block;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.notif-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.logout {
+  background: #ef4444;
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.container { max-width: 1300px; margin: 30px auto; padding: 0 20px; }
+
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* ============================= */
+/* ✅ NEW: SUMMARY CARDS STYLES */
+/* ============================= */
+.summary-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+  gap:20px;
+  margin-bottom:30px;
+}
+
+.summary-card{
+  background:white;
+  border-radius:14px;
+  padding:20px;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+  text-align:center;
+}
+
+.summary-card h4{
+  margin:0;
+  font-size:14px;
+  color:#64748b;
+}
+
+.summary-card p{
+  margin-top:10px;
+  font-size:26px;
+  font-weight:700;
+  color:#0f172a;
+}
+
+.summary-card.blue{ border-left:5px solid #2563eb; }
+.summary-card.green{ border-left:5px solid #22c55e; }
+.summary-card.red{ border-left:5px solid #ef4444; }
+.summary-card.purple{ border-left:5px solid #7c3aed; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 14px 12px; border-bottom: 1px solid #e5e7eb; }
+thead { background: #f8fafc; font-size: 12px; text-transform: uppercase; }
+
+.status {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pending { background: #fef3c7; color: #92400e; }
+.approved { background: #dcfce7; color: #166534; }
+.rejected { background: #fee2e2; color: #991b1b; }
+
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-approve { background: #22c55e; color: white; }
+.btn-reject { background: #ef4444; color: white; }
+.btn-view { background: #2563eb; color: white; }
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h1>Staff Dashboard — Leave Management</h1>
+  <div class="header-actions">
+
+    <div class="notif" onclick="toggleNotif()">
+      🔔
+      <span class="notif-count" id="notifCount">0</span>
+      <div class="notif-panel" id="notifPanel">
+        <h4>
+          Notifications
+          <button onclick="markAllRead()">Mark all read</button>
+        </h4>
+        <div class="notif-meta" id="notifMeta">Last updated: —</div>
+        <div id="notifList"></div>
+      </div>
+    </div>
+
+    <span class="user-badge" id="userBadge"></span>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="container">
+
+
+<div style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+  
+</div>
+
+  <!-- ============================= -->
+  <!-- ✅ NEW: TODAY SUMMARY CARDS -->
+  <!-- ============================= -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h4>📅 Today</h4>
+      <p id="todayDate">—</p>
+    </div>
+
+    <div class="summary-card blue">
+      <h4>📥 Requests Raised</h4>
+      <p id="todayRaised">0</p>
+    </div>
+
+    <div class="summary-card green">
+      <h4>✅ Approved Today</h4>
+      <p id="todayApproved">0</p>
+    </div>
+
+    <div class="summary-card red">
+      <h4>❌ Rejected Today</h4>
+      <p id="todayRejected">0</p>
+    </div>
+
+    <div class="summary-card purple">
+      <h4>🚫 Students Absent</h4>
+      <p id="todayAbsent">0</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>All Leave Requests</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Roll No</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Action By</th>
+          <th>Action Time</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="leaveTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) location.replace("login.html");
+
+const payload = JSON.parse(atob(token.split(".")[1]));
+if (!["staff","hod"].includes(payload.role)) {
+  localStorage.clear();
+  location.replace("login.html");
+}
+
+const isHod = payload.role === "hod";
+userBadge.innerText = `Logged in as: ${isHod ? "HOD" : "STAFF"} (${payload.staffId})`;
+
+const API = "http://localhost:3000";
+
+/* 🔔 NOTIFICATIONS */
+let notifOpen = false;
+
+function toggleNotif() {
+  notifOpen = !notifOpen;
+  notifPanel.style.display = notifOpen ? "block" : "none";
+}
+
+async function loadNotifications() {
+  const res = await fetch(`${API}/api/notifications`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) return;
+
+  const data = await res.json();
+  notifList.innerHTML = "";
+
+  document.getElementById("notifMeta").innerText =
+    "Last updated: " + new Date().toLocaleTimeString();
+
+  if (!data.length) {
+    notifList.innerHTML = `<div class="notif-empty">No notifications</div>`;
+    notifCount.style.display = "none";
+    return;
+  }
+
+  const unread = data.filter(n => !n.is_read);
+  notifCount.style.display = unread.length ? "inline" : "none";
+  notifCount.innerText = unread.length;
+
+  data.slice(0,6).forEach(n => {
+    const div = document.createElement("div");
+    div.className = "notif-item" + (n.is_read ? "" : " unread");
+    div.innerHTML = `${n.message}<small>${new Date(n.created_at).toLocaleString()}</small>`;
+    div.onclick = async () => {
+      await fetch(`${API}/api/notifications/${n.id}/read`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadNotifications();
+    };
+    notifList.appendChild(div);
+  });
+}
+
+async function markAllRead() {
+  const res = await fetch(`${API}/api/notifications`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  await Promise.all(
+    data.filter(n=>!n.is_read).map(n =>
+      fetch(`${API}/api/notifications/${n.id}/read`, {
+        method:"PUT",
+        headers:{ Authorization:`Bearer ${token}` }
+      })
+    )
+  );
+  loadNotifications();
+}
+
+/* polling */
+loadNotifications();
+setInterval(loadNotifications, 5000);
+
+/* LEAVE LOGIC — UNCHANGED */
+const formatDate = d => d ? new Date(d).toLocaleDateString("en-GB") : "-";
+const formatDateTime = d => d ? new Date(d).toLocaleString("en-GB") : "-";
+
+function statusLabel(s){
+  if (!s || s==="PENDING") return "Pending";
+  if (s==="STAFF_APPROVED") return "Approved by Staff";
+  if (s==="STAFF_REJECTED") return "Rejected by Staff";
+  if (s==="HOD_APPROVED") return "Approved by HOD";
+  if (s==="HOD_REJECTED") return "Rejected by HOD";
+  return s;
+}
+
+function statusClass(s){
+  if (!s || s==="PENDING") return "pending";
+  if (s.endsWith("APPROVED")) return "approved";
+  if (s.endsWith("REJECTED")) return "rejected";
+  return "pending";
+}
+
+function canAct(status){
+  if (!isHod) return status==="PENDING";
+  return status==="PENDING" || status==="STAFF_APPROVED";
+}
+
+/* ============================= */
+/* ✅ NEW: TODAY STATS LOGIC */
+/* ============================= */
+function updateTodayStats(leaves){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  let raised = 0;
+  let approved = 0;
+  let rejected = 0;
+  let absentSet = new Set();
+
+  leaves.forEach(l => {
+    if (!l.created_at) return;
+
+    const created = new Date(l.created_at);
+    created.setHours(0,0,0,0);
+
+    // ✅ Only leaves RAISED today
+    if (created.getTime() !== today.getTime()) return;
+
+    raised++;
+
+    // ✅ Approved / Rejected counted on RAISED DAY only
+    if (l.status?.endsWith("APPROVED")) {
+      approved++;
+      absentSet.add(l.roll_number);
+    }
+
+    if (l.status?.endsWith("REJECTED")) {
+      rejected++;
+      absentSet.add(l.roll_number);
+    }
+
+    // ❌ Pending → NOT absent
+  });
+  document.getElementById("todayDate").innerText =
+    today.toLocaleDateString("en-GB",{ day:"numeric", month:"short", year:"numeric" });
+
+  document.getElementById("todayRaised").innerText = raised;
+  document.getElementById("todayApproved").innerText = approved;
+  document.getElementById("todayRejected").innerText = rejected;
+  document.getElementById("todayAbsent").innerText = absentSet.size;
+}
+
+async function loadLeaves(){
+  const res = await fetch(`${API}/api/staff/leave-requests`,{
+    headers:{ Authorization:`Bearer ${token}` }
+  });
+  if (!res.ok) return;
+
+  const leaves = await res.json();
+  leaveTable.innerHTML = "";
+
+  /* ✅ UPDATE STATS HERE */
+  updateTodayStats(leaves);
+
+  leaves.forEach(l=>{
+    let actions = `<button class="btn btn-view"
+      onclick="viewProfile('${l.roll_number}')">View</button>`;
+    if (canAct(l.status)) {
+      actions += `
+        <button class="btn btn-approve"
+          onclick="takeAction(${l.id},'approve')">Approve</button>
+        <button class="btn btn-reject"
+          onclick="takeAction(${l.id},'reject')">Reject</button>`;
+    }
+
+    leaveTable.innerHTML += `
+      <tr>
+        <td>${l.roll_number}</td>
+        <td>${formatDate(l.from_date)}</td>
+        <td>${formatDate(l.to_date)}</td>
+        <td>${l.reason}</td>
+        <td><span class="status ${statusClass(l.status)}">${statusLabel(l.status)}</span></td>
+        <td>${l.action_by || "-"}</td>
+        <td>${formatDateTime(l.action_time)}</td>
+        <td class="actions">${actions}</td>
+      </tr>`;
+  });
+}
+
+async function takeAction(id, decision){
+  await fetch(`${API}/api/leave/${id}/action`,{
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:`Bearer ${token}`
+    },
+    body:JSON.stringify({ decision })
+  });
+  loadLeaves();
+}
+
+function viewProfile(roll){
+  location.href = `staff-student-profile.html?roll=${roll}`;
+}
+
+function logout(){
+  localStorage.clear();
+  location.replace("login.html");
+}
+
+loadLeaves();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Apply Leave | Student</title>
+
+<style>
+* { box-sizing: border-box; font-family: "Segoe UI", Arial, sans-serif; }
+body { margin: 0; background: #f2f5f9; color: #1f2937; }
+
+.header {
+  background: linear-gradient(120deg, #2563eb, #1e40af);
+  color: white;
+  padding: 26px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 { margin: 0; font-size: 24px; }
+
+.header-actions { display: flex; gap: 14px; align-items: center; }
+.user-badge { font-size: 13px; opacity: 0.9; }
+
+.back-btn, .logout {
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.back-btn { background: #38bdf8; }
+.logout { background: #ef4444; }
+
+.container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 30px;
+}
+
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 26px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.warning {
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  display: none;
+}
+
+label {
+  font-size: 13px;
+  color: #475569;
+  display: block;
+  margin-top: 16px;
+}
+
+input, textarea {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+textarea { resize: none; }
+
+.submit-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  background: #22c55e;
+  border: none;
+  color: white;
+  font-size: 15px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.submit-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+}
+
+thead {
+  background: #f8fafc;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.status {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pending { background: #fef3c7; color: #92400e; }
+.approved { background: #dcfce7; color: #166534; }
+.rejected { background: #fee2e2; color: #991b1b; }
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #1f2937;
+  color: white;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h1>Student Dashboard — Apply Leave</h1>
+  <div class="header-actions">
+    <span class="user-badge" id="userBadge"></span>
+    <button class="back-btn" onclick="goBack()">Back</button>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="grid">
+
+    <div class="card">
+      <h2>Apply Leave</h2>
+      <div class="warning" id="pendingWarning">
+        ⚠️ You already have a pending leave. You cannot apply again.
+      </div>
+
+      <label>From Date</label>
+      <input type="date" id="fromDate">
+
+      <label>To Date</label>
+      <input type="date" id="toDate">
+
+      <label>Reason</label>
+      <textarea id="reason" rows="3"></textarea>
+
+      <button class="submit-btn" id="submitBtn">Submit Leave</button>
+    </div>
+
+    <div class="card">
+      <h2>Recent Leave History</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th>Status</th>
+            <th>Action By</th>
+          </tr>
+        </thead>
+        <tbody id="leaveHistory"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) location.href = "login.html";
+
+const payload = JSON.parse(atob(token.split(".")[1]));
+if (payload.role !== "student") {
+  localStorage.clear();
+  location.href = "login.html";
+}
+
+const rollNumber = payload.rollNumber;
+userBadge.innerText = `Logged in as: STUDENT (${rollNumber})`;
+
+const API = "http://localhost:3000";
+
+function showToast(msg) {
+  toast.innerText = msg;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 3000);
+}
+
+function statusClass(s) {
+  if (s === "PENDING") return "pending";
+  if (s.endsWith("APPROVED")) return "approved";
+  if (s.endsWith("REJECTED")) return "rejected";
+  return "pending";
+}
+
+submitBtn.onclick = async () => {
+  if (!fromDate.value || !toDate.value || !reason.value.trim()) {
+    showToast("All fields are required");
+    return;
+  }
+
+  if (new Date(fromDate.value) > new Date(toDate.value)) {
+    showToast("From date cannot be after To date");
+    return;
+  }
+
+  submitBtn.disabled = true;
+
+  const res = await fetch(`${API}/api/student/apply-leave`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      fromDate: fromDate.value,
+      toDate: toDate.value,
+      reason: reason.value.trim()
+    })
+  });
+
+  submitBtn.disabled = false;
+
+  if (!res.ok) {
+    const e = await res.json().catch(()=>({}));
+    showToast(e.message || "Failed to apply leave");
+    return;
+  }
+
+  showToast("Leave request submitted");
+  loadHistory();
+};
+
+async function loadHistory() {
+  const res = await fetch(`${API}/api/student/leaves/${rollNumber}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const leaves = await res.json();
+  leaveHistory.innerHTML = "";
+
+  const hasPending = leaves.some(l => l.status === "PENDING");
+  pendingWarning.style.display = hasPending ? "block" : "none";
+  submitBtn.disabled = hasPending;
+
+  leaves.slice(0,5).forEach(l => {
+    leaveHistory.innerHTML += `
+      <tr>
+        <td>${new Date(l.from_date).toLocaleDateString("en-GB")}</td>
+        <td>${new Date(l.to_date).toLocaleDateString("en-GB")}</td>
+        <td><span class="status ${statusClass(l.status)}">${l.status}</span></td>
+        <td>${l.action_by ? `${l.action_by} (${l.action_role})` : "-"}</td>
+      </tr>
+    `;
+  });
+}
+
+function goBack() { location.href = "student-dashboard.html"; }
+function logout() { localStorage.clear(); location.href = "login.html"; }
+
+loadHistory();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Student Dashboard</title>
+
+<style>
+/* ================= GLOBAL ================= */
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f2f5f9;
+  color: #1f2937;
+}
+
+/* ================= HEADER ================= */
+.header {
+  background: linear-gradient(120deg, #2563eb, #1e40af);
+  color: white;
+  padding: 26px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 { margin: 0; font-size: 24px; }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-badge { font-size: 13px; opacity: 0.9; }
+
+/* ================= NOTIFICATION ================= */
+.notif {
+  position: relative;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.notif-count {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: red;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  display: none;
+}
+
+.notif-panel {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 38px;
+  width: 340px;
+  background: white;
+  color: #111;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  z-index: 99;
+  overflow: hidden;
+}
+
+.notif-panel h4 {
+  margin: 0;
+  padding: 12px;
+  background: #f1f5f9;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notif-panel h4 button {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.notif-meta {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #64748b;
+  background: #fafafa;
+}
+
+.notif-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.notif-item.unread {
+  background: #eff6ff;
+  font-weight: 600;
+}
+
+.notif-item small {
+  display: block;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.notif-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* ================= BUTTONS ================= */
+.apply-leave {
+  background: #22c55e;
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.logout {
+  background: #ef4444;
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ================= LAYOUT ================= */
+.container {
+  max-width: 1300px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+/* ================= STATS ================= */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  position: relative;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #cbd5e1;
+}
+
+.primary::before { background: #2563eb; }
+.warning::before { background: #f59e0b; }
+.info::before { background: #0ea5e9; }
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.stat-sub {
+  font-size: 13px;
+  color: #475569;
+  margin-top: 4px;
+}
+
+.progress {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #22c55e;
+  width: 0%;
+}
+
+/* ================= TABLE ================= */
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+thead {
+  background: #f8fafc;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.status {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pending { background: #fef3c7; color: #92400e; }
+.approved { background: #dcfce7; color: #166534; }
+.rejected { background: #fee2e2; color: #991b1b; }
+</style>
+</head>
+
+<body>
+
+<!-- ================= HEADER ================= -->
+<div class="header">
+  <h1>Student Dashboard — Leave Management</h1>
+  <div class="header-actions">
+
+    <div class="notif" onclick="toggleNotif()">
+      🔔
+      <span class="notif-count" id="notifCount">0</span>
+      <div class="notif-panel" id="notifPanel">
+        <h4>
+          Notifications
+          <button onclick="markAllRead()">Mark all read</button>
+        </h4>
+        <div class="notif-meta" id="notifMeta">Last updated: —</div>
+        <div id="notifList"></div>
+      </div>
+    </div>
+
+    <span class="user-badge" id="userBadge"></span>
+    <button class="apply-leave" onclick="goToApplyLeave()">Apply Leave</button>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<!-- ================= CONTENT ================= -->
+<div class="container">
+
+  <div class="stats">
+    <div class="stat-card primary">
+      <div class="stat-label">Roll Number</div>
+      <div class="stat-value" id="rollCard">—</div>
+      <div class="stat-sub">Student ID</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Total Leaves Taken</div>
+      <div class="stat-value" id="totalLeaves">0</div>
+      <div class="stat-sub">All time</div>
+    </div>
+
+    <div class="stat-card warning">
+      <div class="stat-label">Leaves This Month</div>
+      <div class="stat-value" id="monthLeaves">0</div>
+      <div class="stat-sub">Current month</div>
+    </div>
+
+    <div class="stat-card info">
+      <div class="stat-label">Attendance % (Estimated)</div>
+      <div class="stat-value" id="attendancePct">0%</div>
+      <div class="progress">
+        <div class="progress-fill" id="attendanceBar"></div>
+      </div>
+      <div class="stat-sub">Based on leave usage</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>All Leave Requests</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>From</th>
+          <th>To</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Action By</th>
+          <th>Time Raised</th>
+        </tr>
+      </thead>
+      <tbody id="leaveTableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+/* ================= AUTH ================= */
+const token = localStorage.getItem("token");
+if (!token) location.replace("login.html");
+
+const payload = JSON.parse(atob(token.split(".")[1]));
+if (payload.role !== "student") {
+  localStorage.clear();
+  location.replace("login.html");
+}
+
+const rollNumber = payload.rollNumber;
+userBadge.innerText = `Logged in as: STUDENT (${rollNumber})`;
+rollCard.innerText = rollNumber;
+
+const API = "http://localhost:3000";
+
+/* ================= LEAVE HISTORY ================= */
+async function loadLeaveHistory() {
+  const res = await fetch(`${API}/api/student/leaves/${rollNumber}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const leaves = await res.json();
+  leaveTableBody.innerHTML = "";
+
+  let monthCount = 0;
+  const now = new Date();
+
+  leaves.forEach(l => {
+    const from = new Date(l.from_date);
+    if (from.getMonth() === now.getMonth() &&
+        from.getFullYear() === now.getFullYear()) {
+      monthCount++;
+    }
+
+    const statusClass =
+      l.status.endsWith("APPROVED") ? "approved" :
+      l.status.endsWith("REJECTED") ? "rejected" : "pending";
+
+    const statusLabel = l.status.replace("_", " ");
+
+    leaveTableBody.innerHTML += `
+      <tr>
+        <td>${new Date(l.from_date).toLocaleDateString("en-GB")}</td>
+        <td>${new Date(l.to_date).toLocaleDateString("en-GB")}</td>
+        <td>${l.reason}</td>
+        <td><span class="status ${statusClass}">${statusLabel}</span></td>
+        <td>${l.action_by ? `${l.action_by} (${l.action_role})` : "-"}</td>
+        <td>${new Date(l.applied_time).toLocaleString("en-GB")}</td>
+      </tr>
+    `;
+  });
+
+  totalLeaves.innerText = leaves.length;
+  monthLeaves.innerText = monthCount;
+
+  const attendance = Math.max(0, Math.round(((22 - monthCount) / 22) * 100));
+  attendancePct.innerText = attendance + "%";
+  attendanceBar.style.width = attendance + "%";
+}
+
+/* ================= NOTIFICATIONS ================= */
+let notifOpen = false;
+
+function toggleNotif() {
+  notifOpen = !notifOpen;
+  notifPanel.style.display = notifOpen ? "block" : "none";
+}
+
+async function loadNotifications() {
+  const res = await fetch(`${API}/api/notifications`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+  notifList.innerHTML = "";
+
+  document.getElementById("notifMeta").innerText =
+    "Last updated: " + new Date().toLocaleTimeString();
+
+  if (!data.length) {
+    notifList.innerHTML = `<div class="notif-empty">No notifications</div>`;
+    notifCount.style.display = "none";
+    return;
+  }
+
+  const unread = data.filter(n => !n.is_read);
+  notifCount.style.display = unread.length ? "inline" : "none";
+  notifCount.innerText = unread.length;
+
+  data.slice(0,5).forEach(n => {
+    const div = document.createElement("div");
+    div.className = "notif-item" + (n.is_read ? "" : " unread");
+    div.innerHTML = `${n.message}<small>${new Date(n.created_at).toLocaleString()}</small>`;
+    div.onclick = async () => {
+      await fetch(`${API}/api/notifications/${n.id}/read`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadNotifications();
+    };
+    notifList.appendChild(div);
+  });
+}
+
+async function markAllRead() {
+  const res = await fetch(`${API}/api/notifications`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+
+  await Promise.all(
+    data.filter(n => !n.is_read).map(n =>
+      fetch(`${API}/api/notifications/${n.id}/read`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    )
+  );
+
+  loadNotifications();
+}
+
+/* ================= NAV ================= */
+function goToApplyLeave() {
+  location.href = "apply-leave.html";
+}
+
+function logout() {
+  localStorage.clear();
+  location.replace("login.html");
+}
+
+/* ================= INIT ================= */
+loadLeaveHistory();
+loadNotifications();
+setInterval(loadNotifications, 5000);
+</script>
+
+</body>
+</html>

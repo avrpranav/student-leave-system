@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background:#f1f5f9;
+  margin:0;
+  padding:30px;
+  color:#1f2937;
+}
+
+h1 { margin-bottom: 10px; }
+h2 { margin-top: 40px; }
+
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.header-right {
+  display:flex;
+  gap:16px;
+  align-items:center;
+}
+
+/* 🔔 Notification */
+.notif {
+  position: relative;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.notif-count {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: red;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  display: none;
+}
+
+.notif-panel {
+  display:none;
+  position:absolute;
+  right:0;
+  top:36px;
+  width:360px;
+  background:white;
+  border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
+  z-index:99;
+  overflow:hidden;
+}
+
+.notif-panel h4 {
+  margin:0;
+  padding:12px;
+  background:#f8fafc;
+  font-size:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.notif-panel h4 button {
+  background:none;
+  border:none;
+  color:#2563eb;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.notif-meta {
+  padding:6px 12px;
+  font-size:11px;
+  color:#64748b;
+  background:#fafafa;
+}
+
+.notif-item {
+  padding:10px 12px;
+  border-bottom:1px solid #e5e7eb;
+  font-size:13px;
+  cursor:pointer;
+}
+
+.notif-item.unread {
+  background:#eff6ff;
+  font-weight:600;
+}
+
+.notif-item small {
+  display:block;
+  margin-top:4px;
+  color:#64748b;
+}
+
+.notif-empty {
+  padding:18px;
+  text-align:center;
+  font-size:13px;
+  color:#64748b;
+}
+
+.card {
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+  margin-bottom:30px;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  gap:16px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 30px;
+  align-items: center;
+}
+
+.donut-box {
+  width: 260px;      /* control size here */
+  height: 260px;
+  margin: 0 auto;    /* center it */
+}
+
+.analytics-layout{
+  display:grid;
+  grid-template-columns: 3fr 1.2fr;
+  gap:24px;
+  align-items:start;
+}
+
+.analytics-side{
+  position:sticky;
+  top:20px;
+  background:#f8fafc;
+  border-radius:12px;
+  padding:16px;
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+}
+
+.side-card{
+  background:white;
+  padding:14px;
+  border-radius:10px;
+  margin-bottom:14px;
+}
+
+.side-title{
+  font-size:13px;
+  color:#64748b;
+  margin-bottom:6px;
+}
+
+.side-value{
+  font-size:22px;
+  font-weight:700;
+}
+
+.progress{
+  height:8px;
+  background:#e5e7eb;
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:6px;
+}
+
+.progress > div{
+  height:100%;
+  border-radius:999px;
+}
+
+.stat {
+  background:#f8fafc;
+  padding:16px;
+  border-radius:10px;
+}
+.stat b { font-size:22px; }
+
+table {
+  width:100%;
+  border-collapse:collapse;
+  margin-top:12px;
+}
+
+th,td {
+  padding:12px;
+  border-bottom:1px solid #e5e7eb;
+  font-size:14px;
+}
+
+th {
+  text-transform:uppercase;
+  font-size:12px;
+  background:#f8fafc;
+}
+
+input, select, button {
+  padding:8px;
+  margin:4px 4px 4px 0;
+}
+
+button {
+  cursor:pointer;
+  border:none;
+  border-radius:6px;
+}
+
+.btn-add { background:#2563eb; color:white; }
+.btn-del { background:#ef4444; color:white; }
+.btn-edit { background:#f59e0b; color:white; }
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <div>
+    <h1>Admin Dashboard</h1>
+    <p id="adminBadge"></p>
+  </div>
+
+  <div class="header-right">
+    <!-- 🔔 Notification Bell -->
+    <div class="notif" onclick="toggleNotif()">
+      🔔
+      <span class="notif-count" id="notifCount">0</span>
+      <div class="notif-panel" id="notifPanel">
+        <h4>
+          Notifications
+          <button onclick="markAllRead()">Mark all read</button>
+        </h4>
+        <div class="notif-meta" id="notifMeta">Last updated: —</div>
+        <div id="notifList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ANALYTICS ================= -->
+<div class="card">
+  <h2>📊 Analytics Overview</h2>
+
+  <!-- Summary Cards (existing numbers) -->
+  <div class="grid" id="analytics"></div>
+
+  <!-- Charts -->
+  <div class="chart-grid">
+  <div class="donut-box">
+  <canvas id="leaveStatusChart"></canvas>
+</div>
+
+    <canvas id="monthlyLeaveChart"></canvas>
+    <canvas id="leaveTypeChart"></canvas>
+    <canvas id="deptLeaveChart"></canvas>
+  </div>
+</div>
+<div style="width:20px; height:20px; margin:auto;">
+  <canvas id="leaveStatusChart" width="22" height="22"></canvas>
+</div>
+<!-- ================= STUDENTS ================= -->
+<div class="card">
+  <h2>👨‍🎓 Students</h2>
+
+  <input id="sr" placeholder="Roll">
+  <input id="sn" placeholder="Name">
+  <input id="sd" placeholder="Department">
+  <input id="sp" placeholder="Password">
+  <button class="btn-add" onclick="addStudent()">Add Student</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Roll</th><th>Name</th><th>Dept</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="students"></tbody>
+  </table>
+</div>
+
+<!-- ================= STAFF ================= -->
+<div class="card">
+  <h2>👩‍🏫 Staff</h2>
+
+  <input id="ti" placeholder="Staff ID">
+  <input id="tn" placeholder="Name">
+  <select id="tr">
+    <option value="staff">Staff</option>
+    <option value="hod">HOD</option>
+    <option value="admin">Admin</option>
+  </select>
+  <input id="tp" placeholder="Password">
+  <button class="btn-add" onclick="addStaff()">Add Staff</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Name</th><th>Role</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="staff"></tbody>
+  </table>
+</div>
+
+<script>
+/* ================= AUTH ================= */
+const token = localStorage.getItem("token");
+if (!token) location.replace("login.html");
+
+function parseJWT(t){
+  try { return JSON.parse(atob(t.split(".")[1])); }
+  catch { return null; }
+}
+
+const user = parseJWT(token);
+if (!user || user.role !== "admin") {
+  alert("Admin access only");
+  localStorage.clear();
+  location.replace("login.html");
+}
+
+adminBadge.innerText = `Logged in as ADMIN (${user.staffId})`;
+const API = "http://localhost:3000";
+
+/* ================= 🔔 NOTIFICATIONS ================= */
+let notifOpen = false;
+
+function toggleNotif(){
+  notifOpen = !notifOpen;
+  notifPanel.style.display = notifOpen ? "block" : "none";
+}
+
+async function loadNotifications(){
+  const r = await fetch(`${API}/api/notifications`,{
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  if (!r.ok) return;
+
+  const data = await r.json();
+  notifList.innerHTML = "";
+  notifMeta.innerText =
+    "Last updated: " + new Date().toLocaleTimeString();
+
+  if (!data.length) {
+    notifList.innerHTML =
+      `<div class="notif-empty">No notifications</div>`;
+    notifCount.style.display = "none";
+    return;
+  }
+
+  const unread = data.filter(n=>!n.is_read);
+  notifCount.style.display = unread.length ? "inline" : "none";
+  notifCount.innerText = unread.length;
+
+  data.slice(0,6).forEach(n=>{
+    const d = document.createElement("div");
+    d.className = "notif-item" + (n.is_read ? "" : " unread");
+    d.innerHTML = `
+      ${n.message}
+      <small>${new Date(n.created_at).toLocaleString()}</small>
+    `;
+    d.onclick = async ()=>{
+      await fetch(`${API}/api/notifications/${n.id}/read`,{
+        method:"PUT",
+        headers:{Authorization:`Bearer ${token}`}
+      });
+      loadNotifications();
+    };
+    notifList.appendChild(d);
+  });
+}
+
+async function markAllRead(){
+  const r = await fetch(`${API}/api/notifications`,{
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  const data = await r.json();
+
+  await Promise.all(
+    data.filter(n=>!n.is_read).map(n =>
+      fetch(`${API}/api/notifications/${n.id}/read`,{
+        method:"PUT",
+        headers:{Authorization:`Bearer ${token}`}
+      })
+    )
+  );
+  loadNotifications();
+}
+
+/* 🔁 polling */
+loadNotifications();
+setInterval(loadNotifications, 5000);
+
+/* ================= ANALYTICS ================= */
+async function loadAnalytics(){
+  const r = await fetch(`${API}/api/admin/analytics`,{
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  const a = await r.json();
+
+  analytics.innerHTML = `
+    <div class="stat"><b>${a.students}</b><br>Students</div>
+    <div class="stat"><b>${a.staff}</b><br>Staff</div>
+    <div class="stat"><b>${a.totalLeaves}</b><br>Total Leaves</div>
+    <div class="stat"><b>${a.pending}</b><br>Pending</div>
+    <div class="stat"><b>${a.approved}</b><br>Approved</div>
+    <div class="stat"><b>${a.rejected}</b><br>Rejected</div>
+  `;
+
+  renderLeaveStatus(a);
+
+  const lr = await fetch(`${API}/api/staff/leave-requests`,{
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  const leaves = await lr.json();
+
+  renderMonthlyLeaveTrend(leaves);
+  renderLeaveTypeChart(leaves);
+  renderDeptChart(leaves);
+}
+function renderSideAnalytics(a){
+  const total = a.approved + a.pending + a.rejected;
+
+  sideAnalytics.innerHTML = `
+    <div class="side-card">
+      <div class="side-title">Approval Rate</div>
+      <div class="side-value">${Math.round((a.approved/total)*100)}%</div>
+      <div class="progress">
+        <div style="width:${(a.approved/total)*100}%; background:#22c55e"></div>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-title">Pending Load</div>
+      <div class="side-value">${a.pending}</div>
+      <div class="progress">
+        <div style="width:${(a.pending/total)*100}%; background:#facc15"></div>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-title">Rejection Ratio</div>
+      <div class="side-value">${Math.round((a.rejected/total)*100)}%</div>
+      <div class="progress">
+        <div style="width:${(a.rejected/total)*100}%; background:#ef4444"></div>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-title">System Health</div>
+      <div class="side-value" style="color:#22c55e">Good</div>
+    </div>
+  `;
+}
+
+let leaveStatusChart;
+
+const centerTextPlugin = {
+  id: "centerText",
+  afterDraw(chart) {
+    const { ctx } = chart;
+    const dataset = chart.data.datasets[0].data;
+    const total = dataset.reduce((a, b) => a + b, 0);
+
+    ctx.save();
+    ctx.font = "bold 26px Segoe UI";
+    ctx.fillStyle = "#1f2937";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(total, chart.width / 2, chart.height / 2 - 6);
+
+    ctx.font = "13px Segoe UI";
+    ctx.fillStyle = "#64748b";
+    ctx.fillText("Total Leaves", chart.width / 2, chart.height / 2 + 18);
+    ctx.restore();
+  }
+};
+
+function renderLeaveStatus(a){
+  const ctx = document.getElementById("leaveStatusChart");
+
+  if (leaveStatusChart) leaveStatusChart.destroy();
+
+  leaveStatusChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: ["Approved", "Pending", "Rejected"],
+      datasets: [{
+        data: [a.approved, a.pending, a.rejected],
+        backgroundColor: ["#22c55e", "#facc15", "#ef4444"]
+      }]
+    },
+   options: {
+  responsive: true,
+  maintainAspectRatio: false,   // 🔥 THIS IS CRITICAL
+  plugins: {
+    title: {
+      display: true,
+      text: "Leave Status Distribution"
+    },
+    legend: {
+      position: "top"
+    }
+  }
+}
+
+  });
+}
+function renderMonthlyLeaveTrend(leaves){
+  const monthly = {};
+
+  leaves.forEach(l=>{
+    if (!l.created_at) return;
+    const d = new Date(l.created_at);
+    const key = `${d.getFullYear()}-${d.getMonth()+1}`;
+    monthly[key] = (monthly[key] || 0) + 1;
+  });
+
+  const labels = Object.keys(monthly);
+  const data = Object.values(monthly);
+
+  new Chart(document.getElementById("monthlyLeaveChart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Leaves",
+        data,
+        borderColor: "#2563eb",
+        fill: false
+      }]
+    },
+    options: {
+      plugins: {
+        title: {
+          display: true,
+          text: "Monthly Leave Trend"
+        }
+      }
+    }
+  });
+}
+function renderLeaveTypeChart(leaves){
+  const map = {};
+
+  leaves.forEach(l=>{
+    const r = l.reason || "Other";
+    map[r] = (map[r] || 0) + 1;
+  });
+
+  new Chart(document.getElementById("leaveTypeChart"), {
+    type: "bar",
+    data: {
+      labels: Object.keys(map),
+      datasets: [{
+        label: "Count",
+        data: Object.values(map),
+        backgroundColor: "#7c3aed"
+      }]
+    },
+    options: {
+      plugins: {
+        title: {
+          display: true,
+          text: "Leave Reason Analysis"
+        }
+      }
+    }
+  });
+}
+function renderDeptChart(leaves){
+  const dept = {};
+
+  leaves.forEach(l=>{
+    const d = l.department || "Unknown";
+    dept[d] = (dept[d] || 0) + 1;
+  });
+
+  new Chart(document.getElementById("deptLeaveChart"), {
+    type: "bar",
+    data: {
+      labels: Object.keys(dept),
+      datasets: [{
+        label: "Leaves",
+        data: Object.values(dept),
+        backgroundColor: "#0ea5e9"
+      }]
+    },
+    options: {
+      plugins: {
+        title: {
+          display: true,
+          text: "Department-wise Leave Load"
+        }
+      }
+    }
+  });
+}
+
+/* ================= STUDENTS ================= */
+async function loadStudents(){
+  const r = await fetch(`${API}/api/admin/students`,{
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  const d = await r.json();
+  students.innerHTML="";
+
+  d.forEach(s=>{
+    students.innerHTML+=`
+      <tr>
+        <td>${s.roll_number}</td>
+        <td>${s.name}</td>
+        <td>${s.department}</td>
+        <td>
+          <button class="btn-edit"
+            onclick="editStudent('${s.roll_number}','${s.name}','${s.department}')">Edit</button>
+          <button class="btn-del"
+            onclick="delStudent('${s.roll_number}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function addStudent(event){
+  if (event) event.preventDefault();
+
+  alert("Add Student button clicked"); // hard proof
+
+  console.log("🟡 Add Student clicked");
+
+  try {
+    const payload = {
+      roll_number: sr.value.trim(),
+      name: sn.value.trim(),
+      department: sd.value.trim(),
+      password: sp.value.trim()
+    };
+
+    console.log("📤 Sending:", payload);
+
+    const res = await fetch(`${API}/api/admin/students`,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:`Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log("📥 Status:", res.status);
+
+    const data = await res.json();
+    console.log("📥 Response:", data);
+
+    alert(data.message || "Request completed");
+
+    loadStudents();
+    loadAnalytics();
+  } catch (err) {
+    console.error("❌ Add student error:", err);
+    alert("Add student failed — check console");
+  }
+}
+
+
+
+function editStudent(r,n,d){
+  const nn = prompt("Name",n);
+  const dd = prompt("Department",d);
+  if(!nn||!dd) return;
+
+  fetch(`${API}/api/admin/students/${r}`,{
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:`Bearer ${token}`
+    },
+    body:JSON.stringify({name:nn,department:dd})
+  }).then(()=>{loadStudents();loadAnalytics();});
+}
+
+async function delStudent(r){
+  if(!confirm("Delete student?")) return;
+  await fetch(`${API}/api/admin/students/${r}`,{
+    method:"DELETE",
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  loadStudents(); loadAnalytics();
+}
+
+/* ================= STAFF ================= */
+async function loadStaff(){
+  const r = await fetch(`${API}/api/admin/staff`,{
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  const d = await r.json();
+  staff.innerHTML="";
+
+  d.forEach(s=>{
+    staff.innerHTML+=`
+      <tr>
+        <td>${s.staff_id}</td>
+        <td>${s.name}</td>
+        <td>${s.role}</td>
+        <td>
+          <button class="btn-del"
+            onclick="delStaff('${s.staff_id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function addStaff(event){
+  if (event) event.preventDefault();
+
+  alert("Add Staff button clicked"); // hard proof
+
+  console.log("🟡 Add Staff clicked");
+
+  try {
+    const payload = {
+      staff_id: ti.value.trim(),
+      name: tn.value.trim(),
+      role: tr.value,
+      password: tp.value.trim()
+    };
+
+    console.log("📤 Sending:", payload);
+
+    const res = await fetch(`${API}/api/admin/staff`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log("📥 Status:", res.status);
+
+    const data = await res.json();
+    console.log("📥 Response:", data);
+
+    alert(data.message || "Staff request completed");
+
+    loadStaff();
+    loadAnalytics();
+  } catch (err) {
+    console.error("❌ Add staff error:", err);
+    alert("Add staff failed — check console");
+  }
+}
+
+async function delStaff(id){
+  if(!confirm("Delete staff?")) return;
+  await fetch(`${API}/api/admin/staff/${id}`,{
+    method:"DELETE",
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  loadStaff(); loadAnalytics();
+}
+
+/* ================= INIT ================= */
+loadAnalytics();
+loadStudents();
+loadStaff();
+</script>
+
+</body>
+</html>
