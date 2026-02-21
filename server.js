@@ -213,12 +213,17 @@ app.put("/api/leave/:id/action", auth, async (req, res) => {
   );
 
   if (updated.rows.length) {
-    await notify(
-      "student",
-      updated.rows[0].roll_number,
-      `Your leave was ${newStatus.replace("_", " ").toLowerCase()}`
-    );
-  }
+  const parts = newStatus.split("_"); 
+  const formattedRole =
+    parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
+  const formattedStatus = parts[1].toLowerCase();
+
+  await notify(
+    "student",
+    updated.rows[0].roll_number,
+    `Your leave request has been ${formattedStatus} by the ${formattedRole}.`
+  );
+}
 
   res.json({ message: "Leave updated" });
 });
